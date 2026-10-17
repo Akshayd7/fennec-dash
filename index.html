@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fennec Dash</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            margin: 0;
+            padding: 0;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #0b091a;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            touch-action: none;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 480px;
+            max-height: 920px;
+            margin: 0 auto;
+            background: #0b091a;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+        }
+        .interactive {
+            pointer-events: auto;
+        }
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            z-index: 10;
+        }
+        .score-board {
+            background: rgba(15, 13, 35, 0.75);
+            border: 2px solid rgba(255, 183, 77, 0.4);
+            border-radius: 20px;
+            padding: 8px 16px;
+            color: #ffe0b2;
+            font-weight: 800;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .score-board span.label {
+            font-size: 0.65rem;
+            color: #ffb74d;
+            text-transform: uppercase;
+        }
+        .icon-btn {
+            background: rgba(15, 13, 35, 0.75);
+            border: 2px solid rgba(255, 183, 77, 0.4);
+            border-radius: 50%;
+            width: 46px;
+            height: 46px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffe0b2;
+            font-size: 1.2rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            transition: transform 0.1s, background 0.2s;
+        }
+        .icon-btn:active {
+            transform: scale(0.92);
+            background: rgba(255, 183, 77, 0.2);
+        }
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(11, 9, 26, 0.88);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 30px;
+            text-align: center;
+            transition: opacity 0.3s ease;
+        }
+        .screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        h1 {
+            color: #ffb74d;
+            font-size: 2.8rem;
+            font-weight: 900;
+            text-shadow: 0 0 20px rgba(255, 183, 77, 0.5), 0 4px 10px rgba(0,0,0,0.8);
+            margin-bottom: 5px;
+            letter-spacing: 2px;
+        }
+        .subtitle {
+            color: #b39ddb;
+            font-size: 1rem;
+            margin-bottom: 30px;
+            font-weight: 600;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.8);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #ffb74d, #f57c00);
+            color: #1a0f00;
+            border: none;
+            padding: 16px 40px;
+            font-size: 1.3rem;
+            font-weight: 900;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(245, 124, 0, 0.5);
+            transition: transform 0.1s, box-shadow 0.2s;
+            margin-top: 15px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .btn-primary:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 10px rgba(245, 124, 0, 0.5);
+        }
+        .instructions {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 183, 77, 0.2);
+            border-radius: 16px;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            max-width: 320px;
+            color: #e0e0e0;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            text-align: left;
+        }
+        .instructions b {
+            color: #ffb74d;
+        }
+        .game-over-stats {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 183, 77, 0.3);
+            border-radius: 16px;
+            padding: 20px;
+            width: 100%;
+            max-width: 280px;
+            margin-bottom: 25px;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            color: #ffe0b2;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        .stat-row .val {
+            color: #ffb74d;
+            font-weight: 900;
+        }
+        .controls-hint {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.8rem;
+            pointer-events: none;
+            animation: pulseHint 2s infinite;
+        }
+        @keyframes pulseHint {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.8; }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+
+        <div class="ui-overlay">
+            <div class="top-bar">
+                <div class="score-board">
+                    <span class="label">Score</span>
+                    <span id="current-score">0</span>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <div class="icon-btn interactive" id="sound-btn" title="Toggle Sound">🔊</div>
+                    <div class="icon-btn interactive" id="pause-btn" title="Pause Game">⏸</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Start Screen -->
+        <div id="start-screen" class="screen">
+            <h1>FENNEC DASH</h1>
+            <div class="subtitle">Moonlit Desert Run</div>
+            
+            <div class="instructions">
+                <b>Controls:</b><br>
+                • <b>Tap Left / Right</b> or <b>Arrow Keys</b> to switch lanes.<br>
+                • <b>Swipe Up</b> or <b>Space / Double-Tap</b> to jump over rocks & bones.<br>
+                • Dodge tall cacti and collect glowing moon gems!
+            </div>
+
+            <button class="btn-primary interactive" id="start-btn">Start Run</button>
+        </div>
+
+        <!-- Pause Screen -->
+        <div id="pause-screen" class="screen hidden">
+            <h1>PAUSED</h1>
+            <div class="subtitle">Take a breather</div>
+            <button class="btn-primary interactive" id="resume-btn">Resume</button>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="game-over-screen" class="screen hidden">
+            <h1>GAME OVER</h1>
+            <div class="subtitle">The desert claims another swift paw</div>
+            
+            <div class="game-over-stats">
+                <div class="stat-row"><span>Distance</span><span class="val" id="final-score">0</span></div>
+                <div class="stat-row"><span>Gems Collected</span><span class="val" id="final-gems">0</span></div>
+                <div class="stat-row"><span>Best Score</span><span class="val" id="best-score">0</span></div>
+            </div>
+
+            <button class="btn-primary interactive" id="restart-btn">Run Again</button>
+        </div>
+    </div>
+
+    <script>
+        // --- AUDIO SYSTEM (Web Audio API) ---
+        class SoundSystem {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+                this.musicInterval = null;
+                this.bassStep = 0;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            toggleMute() {
+                this.muted = !this.muted;
+                if (this.muted && this.musicInterval) {
+                    clearInterval(this.musicInterval);
+                    this.musicInterval = null;
+                } else if (!this.muted && !this.musicInterval && gameState === 'PLAYING') {
+                    this.startMusic();
+                }
+                return this.muted;
+            }
+
+            playTone(freq, type, duration, vol = 0.1, slideFreq = null) {
+                if (this.muted || !this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    if (slideFreq) {
+                        osc.frequency.exponentialRampToValueAtTime(slideFreq, this.ctx.currentTime + duration);
+                    }
+                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e) {}
+            }
+
+            playJump() {
+                this.playTone(300, 'sine', 0.25, 0.15, 600);
+            }
+
+            playLane() {
+                this.playTone(450, 'triangle', 0.1, 0.1, 250);
+            }
+
+            playGem() {
+                this.playTone(880, 'sine', 0.15, 0.12, 1320);
+                setTimeout(() => this.playTone(1760, 'sine', 0.2, 0.1), 80);
+            }
+
+            playHit() {
+                if (this.muted || !this.ctx) return;
+                try {
+                    const dur = 0.4;
+                    const bufferSize = this.ctx.sampleRate * dur;
+                    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                    const data = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        data[i] = Math.random() * 2 - 1;
+                    }
+                    const noise = this.ctx.createBufferSource();
+                    noise.buffer = buffer;
+                    const filter = this.ctx.createBiquadFilter();
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(400, this.ctx.currentTime);
+                    filter.frequency.linearRampToValueAtTime(50, this.ctx.currentTime + dur);
+                    const gain = this.ctx.createGain();
+                    gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
+                    noise.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    noise.start();
+                } catch(e) {}
+            }
+
+            startMusic() {
+                if (this.musicInterval || this.muted) return;
+                this.init();
+                const notes = [130.81, 164.81, 196.00, 246.94, 220.00, 164.81]; // Pentatonic chill arpeggio
+                this.musicInterval = setInterval(() => {
+                    if (gameState !== 'PLAYING' || this.muted) return;
+                    const freq = notes[this.bassStep % notes.length];
+                    this.playTone(freq, 'sine', 0.3, 0.04);
+                    this.bassStep++;
+                }, 280);
+            }
+
+            stopMusic() {
+                if (this.musicInterval) {
+                    clearInterval(this.musicInterval);
+                    this.musicInterval = null;
+                }
+            }
+        }
+
+        const sounds = new SoundSystem();
+
+        // --- GAME ENGINE SETUP ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width = 390;
+        let height = 844;
+
+        function resize() {
+            const container = document.getElementById('game-container');
+            width = container.clientWidth;
+            height = container.clientHeight;
+            canvas.width = width * window.devicePixelRatio;
+            canvas.height = height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // --- GAME STATES & VARIABLES ---
+        let gameState = 'START'; // START, PLAYING, PAUSED, GAMEOVER
+        let score = 0;
+        let gemsCollected = 0;
+        let bestScore = parseInt(localStorage.getItem('fennec_best_score') || '0');
+        let gameSpeed = 1.0;
+        let distanceTraveled = 0;
+
+        // Perspective projection parameters
+        const horizonY = 0.38; // 38% down from top
+        const roadBottomY = 1.0; 
+        const laneXOffsets = [-0.9, 0, 0.9]; // relative scale for lanes at bottom
+
+        // Fox object (Player)
+        const fox = {
+            lane: 1, // 0: left, 1: center, 2: right
+            targetLane: 1,
+            laneSwitchProgress: 1, // 0 to 1
+            y: 0, // jump height offset
+            zVelocity: 0,
+            isJumping: false,
+            animTimer: 0,
+            squish: 1
+        };
+
+        let obstacles = [];
+        let gems = [];
+        let particles = [];
+        let stars = [];
+        let dunes = [];
+        let cactiBg = [];
+
+        // Initialize background environment
+        function initEnvironment() {
+            stars = [];
+            for (let i = 0; i < 60; i++) {
+                stars.push({
+                    x: Math.random() * width,
+                    y: Math.random() * (height * horizonY),
+                    radius: Math.random() * 1.5 + 0.5,
+                    alpha: Math.random(),
+                    pulseSpeed: Math.random() * 0.02 + 0.005
+                });
+            }
+
+            dunes = [
+                { z: 0.2, offset: 0, color: '#16132e', heightFactor: 0.15 },
+                { z: 0.5, offset: 0, color: '#1e1a3d', heightFactor: 0.22 },
+                { z: 0.8, offset: 0, color: '#27224f', heightFactor: 0.30 }
+            ];
+
+            cactiBg = [];
+            for (let i = 0; i < 15; i++) {
+                cactiBg.push({
+                    side: Math.random() < 0.5 ? -1 : 1,
+                    z: Math.random() * 50 + 5,
+                    type: Math.floor(Math.random() * 2)
+                });
+            }
+        }
+        initEnvironment();
+
+        // Spawn logic ensuring valid layouts
+        let spawnTimer = 0;
+        let spawnInterval = 90; // frames
+
+        function spawnEntities() {
+            spawnTimer++;
+            if (spawnTimer > spawnInterval) {
+                spawnTimer = 0;
+                // Gradually increase speed and spawn frequency
+                gameSpeed = Math.min(2.5, 1.0 + (distanceTraveled / 1500));
+                spawnInterval = Math.max(45, 90 - Math.floor(distanceTraveled / 100));
+
+                // Decide pattern: ensure at least one lane is safe
+                // Lanes: 0, 1, 2
+                const safeLane = Math.floor(Math.random() * 3);
+                
+                for (let lane = 0; lane < 3; lane++) {
+                    if (lane === safeLane) {
+                        // Occasionally spawn a gem in the safe lane
+                        if (Math.random() < 0.7) {
+                            gems.push({ lane: lane, z: 50, collected: false });
+                        }
+                        continue;
+                    }
+
+                    // For unsafe lanes, spawn obstacle
+                    const rand = Math.random();
+                    if (rand < 0.45) {
+                        // Low rock or bone pile (jumpable)
+                        obstacles.push({
+                            lane: lane,
+                            z: 50,
+                            type: Math.random() < 0.5 ? 'rock' : 'bones',
+                            height: 'low',
+                            passed: false
+                        });
+                    } else if (rand < 0.8) {
+                        // Tall cactus (must switch lanes)
+                        obstacles.push({
+                            lane: lane,
+                            z: 50,
+                            type: 'cactus',
+                            height: 'tall',
+                            passed: false
+                        });
+                    } else {
+                        // Gem instead of obstacle occasionally
+                        gems.push({ lane: lane, z: 50, collected: false });
+                    }
+                }
+            }
+        }
+
+        // Particle system for dust & jump
+        function addDust(x, y, count = 5) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x + (Math.random() - 0.5) * 30,
+                    y: y + (Math.random() - 0.5) * 10,
+                    vx: (Math.random() - 0.5) * 3,
+                    vy: -Math.random() * 2 - 0.5,
+                    radius: Math.random() * 4 + 2,
+                    alpha: 0.7,
+                    color: '#d4b59c'
+                });
+            }
+        }
+
+        function addGemSparkles(x, y) {
+            for (let i = 0; i < 8; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 4 + 1;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    radius: Math.random() * 3 + 1,
+                    alpha: 1.0,
+                    color: '#00e5ff'
+                });
+            }
+        }
+
+        // --- INPUT HANDLING ---
+        function switchLane(dir) {
+            if (gameState !== 'PLAYING') return;
+            const newLane = Math.max(0, Math.min(2, fox.targetLane + dir));
+            if (newLane !== fox.targetLane) {
+                fox.targetLane = newLane;
+                fox.laneSwitchProgress = 0;
+                sounds.playLane();
+            }
+        }
+
+        function triggerJump() {
+            if (gameState !== 'PLAYING') return;
+            if (!fox.isJumping) {
+                fox.isJumping = true;
+                fox.zVelocity = 11;
+                sounds.playJump();
+                const screenX = width / 2 + (fox.lane - 1) * 90;
+                const screenY = height * 0.82;
+                addDust(screenX, screenY, 8);
+            }
+        }
+
+        // Touch & Mouse bindings
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let lastTapTime = 0;
+
+        window.addEventListener('pointerdown', (e) => {
+            if (gameState !== 'PLAYING') return;
+            touchStartX = e.clientX;
+            touchStartY = e.clientY;
+
+            // Double tap detection for jump
+            const now = Date.now();
+            if (now - lastTapTime < 300) {
+                triggerJump();
+            }
+            lastTapTime = now;
+        });
+
+        window.addEventListener('pointerup', (e) => {
+            if (gameState !== 'PLAYING') return;
+            const dx = e.clientX - touchStartX;
+            const dy = e.clientY - touchStartY;
+            const absDx = Math.abs(dx);
+            const absDy = Math.abs(dy);
+
+            if (absDx > 30 && absDx > absDy) {
+                if (dx > 0) switchLane(1);
+                else switchLane(-1);
+            } else if (dy < -30 && absDy > absDx) {
+                triggerJump();
+            } else if (absDx < 15 && absDy < 15) {
+                // Tap left or right half of screen
+                if (e.clientX < width / 2) switchLane(-1);
+                else switchLane(1);
+            }
+        });
+
+        // Keyboard bindings
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+                if (gameState === 'PLAYING') switchLane(-1);
+            } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+                if (gameState === 'PLAYING') switchLane(1);
+            } else if (e.code === 'ArrowUp' || e.code === 'Space' || e.code === 'KeyW') {
+                if (gameState === 'PLAYING') {
+                    e.preventDefault();
+                    triggerJump();
+                }
+            }
+        });
+
+        // UI Buttons
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        document.getElementById('resume-btn').addEventListener('click', resumeGame);
+        document.getElementById('restart-btn').addEventListener('click', startGame);
+        document.getElementById('pause-btn').addEventListener('click', togglePause);
+        document.getElementById('sound-btn').addEventListener('click', () => {
+            const muted = sounds.toggleMute();
+            document.getElementById('sound-btn').textContent = muted ? '🔇' : '🔊';
+        });
+
+        function startGame() {
+            sounds.init();
+            gameState = 'PLAYING';
+            score = 0;
+            gemsCollected = 0;
+            distanceTraveled = 0;
+            gameSpeed = 1.0;
+            spawnTimer = 0;
+            spawnInterval = 90;
+            obstacles = [];
+            gems = [];
+            particles = [];
+            fox.lane = 1;
+            fox.targetLane = 1;
+            fox.laneSwitchProgress = 1;
+            fox.y = 0;
+            fox.zVelocity = 0;
+            fox.isJumping = false;
+
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('pause-screen').classList.add('hidden');
+            sounds.startMusic();
+        }
+
+        function togglePause() {
+            if (gameState === 'PLAYING') {
+                gameState = 'PAUSED';
+                sounds.stopMusic();
+                document.getElementById('pause-screen').classList.remove('hidden');
+                document.getElementById('pause-btn').textContent = '▶';
+            } else if (gameState === 'PAUSED') {
+                resumeGame();
+            }
+        }
+
+        function resumeGame() {
+            if (gameState === 'PAUSED') {
+                gameState = 'PLAYING';
+                document.getElementById('pause-screen').classList.add('hidden');
+                document.getElementById('pause-btn').textContent = '⏸';
+                sounds.startMusic();
+            }
+        }
+
+        function gameOver() {
+            gameState = 'GAMEOVER';
+            sounds.stopMusic();
+            sounds.playHit();
+
+            if (score > bestScore) {
+                bestScore = score;
+                localStorage.setItem('fennec_best_score', bestScore);
+            }
+
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('final-gems').textContent = gemsCollected;
+            document.getElementById('best-score').textContent = bestScore;
+            document.getElementById('game-over-screen').classList.remove('hidden');
+            document.getElementById('pause-btn').textContent = '⏸';
+        }
+
+        // --- DRAWING HELPERS ---
+        function project(z, lane, laneProg) {
+            // z ranges from 50 (horizon) down to 0 (player)
+            // Perspective transformation
+            const clampedZ = Math.max(0.01, z);
+            const scale = 1.5 / clampedZ;
+            
+            // Interpolate lane position smoothly
+            const currentLanePos = (fox.lane + (fox.targetLane - fox.lane) * fox.laneSwitchProgress);
+            const laneOffsetCalc = (lane - currentLanePos) * 120 * scale;
+
+            const x = (width / 2) + laneOffsetCalc;
+            const y = (height * horizonY) + (height * (1 - horizonY)) * (1 - (clampedZ / 50));
+            return { x, y, scale };
+        }
+
+        // --- GAME LOOP ---
+        let lastTime = performance.now();
+
+        function update(dt) {
+            if (gameState !== 'PLAYING') return;
+
+            distanceTraveled += gameSpeed * 1.5;
+            score = Math.floor(distanceTraveled);
+            document.getElementById('current-score').textContent = score;
+
+            // Smooth lane switching
+            if (fox.laneSwitchProgress < 1) {
+                fox.laneSwitchProgress += dt * 10 * gameSpeed;
+                if (fox.laneSwitchProgress >= 1) {
+                    fox.laneSwitchProgress = 1;
+                    fox.lane = fox.targetLane;
+                }
+            }
+
+            // Jump physics
+            if (fox.isJumping) {
+                fox.y += fox.zVelocity;
+                fox.zVelocity -= 0.8; // gravity
+                if (fox.y <= 0) {
+                    fox.y = 0;
+                    fox.isJumping = false;
+                    fox.zVelocity = 0;
+                    const screenX = width / 2;
+                    const screenY = height * 0.82;
+                    addDust(screenX, screenY, 5);
+                }
+            }
+
+            // Update obstacles
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                obs.z -= 0.4 * gameSpeed;
+
+                // Collision detection when obstacle reaches player zone (z close to 0)
+                if (obs.z <= 0.8 && obs.z >= -0.2 && obs.lane === fox.lane) {
+                    if (obs.height === 'low') {
+                        // Must jump over low rocks/bones
+                        if (fox.y < 25) {
+                            gameOver();
+                            return;
+                        }
+                    } else {
+                        // Tall cacti cannot be jumped over
+                        gameOver();
+                        return;
+                    }
+                }
+
+                if (obs.z < -1) {
+                    obstacles.splice(i, 1);
+                }
+            }
+
+            // Update gems
+            for (let i = gems.length - 1; i >= 0; i--) {
+                let g = gems[i];
+                g.z -= 0.4 * gameSpeed;
+
+                if (!g.collected && g.z <= 0.6 && g.z >= -0.2 && g.lane === fox.lane) {
+                    // Check height during jump if high, or regular collection
+                    if (g.z <= 0.4) {
+                        g.collected = true;
+                        gemsCollected++;
+                        score += 50;
+                        sounds.playGem();
+                        const p = project(g.z, g.lane, 1);
+                        addGemSparkles(p.x, p.y - 20);
+                    }
+                }
+
+                if (g.z < -1 || g.collected) {
+                    gems.splice(i, 1);
+                }
+            }
+
+            // Update particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.03;
+                if (p.alpha <= 0 || p.radius <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            spawnEntities();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, width, height);
+
+            // 1. NIGHT SKY & STARS
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, height * horizonY);
+            skyGrad.addColorStop(0, '#05030a');
+            skyGrad.addColorStop(1, '#1b1238');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, width, height * horizonY);
+
+            // Draw twinkling stars
+            stars.forEach(star => {
+                star.alpha += star.pulseSpeed;
+                if (star.alpha > 1 || star.alpha < 0.2) star.pulseSpeed *= -1;
+                ctx.fillStyle = `rgba(255, 255, 255, ${Math.abs(star.alpha)})`;
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Big Glowing Moon
+            const moonX = width * 0.75;
+            const moonY = height * 0.18;
+            const moonGrad = ctx.createRadialGradient(moonX, moonY, 5, moonX, moonY, 45);
+            moonGrad.addColorStop(0, 'rgba(255, 248, 220, 1)');
+            moonGrad.addColorStop(0.5, 'rgba(255, 224, 130, 0.4)');
+            moonGrad.addColorStop(1, 'rgba(255, 224, 130, 0)');
+            ctx.fillStyle = moonGrad;
+            ctx.beginPath();
+            ctx.arc(moonX, moonY, 45, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 2. PARALLAX DESERT DUNES & CANYON WALLS
+            dunes.forEach((dune, idx) => {
+                ctx.fillStyle = dune.color;
+                ctx.beginPath();
+                ctx.moveTo(0, height * horizonY);
+                const waveOffset = (distanceTraveled * (idx + 1) * 0.05) % width;
+                for (let x = 0; x <= width; x += 20) {
+                    const y = height * horizonY + Math.sin((x + waveOffset) * 0.01) * (20 * (idx + 1)) + (height * dune.heightFactor);
+                    ctx.lineTo(x, y);
+                }
+                ctx.lineTo(width, height);
+                ctx.lineTo(0, height);
+                ctx.closePath();
+                ctx.fill();
+            });
+
+            // Canyon walls on sides (Temple-run perspective)
+            ctx.fillStyle = '#0f0c24';
+            ctx.beginPath();
+            ctx.moveTo(0, height * horizonY);
+            ctx.lineTo(width * 0.25, height);
+            ctx.lineTo(0, height);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(width, height * horizonY);
+            ctx.lineTo(width * 0.75, height);
+            ctx.lineTo(width, height);
+            ctx.closePath();
+            ctx.fill();
+
+            // 3. DESERT ROAD / CANYON FLOOR
+            const roadGrad = ctx.createLinearGradient(0, height * horizonY, 0, height);
+            roadGrad.addColorStop(0, '#2d224c');
+            roadGrad.addColorStop(1, '#1f1638');
+            ctx.fillStyle = roadGrad;
+            ctx.beginPath();
+            ctx.moveTo(width * 0.25, height);
+            ctx.lineTo(width * 0.75, height);
+            ctx.lineTo(width * 0.58, height * horizonY);
+            ctx.lineTo(width * 0.42, height * horizonY);
+            ctx.closePath();
+            ctx.fill();
+
+            // Lane Divider Lines (moving towards camera)
+            ctx.strokeStyle = 'rgba(255, 183, 77, 0.25)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([15, 20]);
+            ctx.lineDashOffset = -(distanceTraveled * 3) % 35;
+            
+            // Left divider
+            ctx.beginPath();
+            ctx.moveTo(width * 0.46, height * horizonY);
+            ctx.lineTo(width * 0.38, height);
+            ctx.stroke();
+
+            // Right divider
+            ctx.beginPath();
+            ctx.moveTo(width * 0.54, height * horizonY);
+            ctx.lineTo(width * 0.62, height);
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset line dash
+
+            // 4. DRAW GEMS & OBSTACLES (Sorted by depth z)
+            const renderQueue = [];
+            obstacles.forEach(obs => renderQueue.push({ type: 'obs', obj: obs, z: obs.z }));
+            gems.forEach(g => { if (!g.collected) renderQueue.push({ type: 'gem', obj: g, z: g.z }); });
+            renderQueue.sort((a, b) => b.z - a.z);
+
+            renderQueue.forEach(item => {
+                const pos = project(item.z, item.obj.lane, 1);
+                if (pos.y < height * horizonY || pos.y > height + 50) return;
+
+                if (item.type === 'obs') {
+                    drawObstacle(item.obj, pos.x, pos.y, pos.scale);
+                } else if (item.type === 'gem') {
+                    drawGem(pos.x, pos.y - 30 * pos.scale, pos.scale);
+                }
+            });
+
+            // 5. DRAW CUTE FENNEC FOX (Player at z ≈ 0)
+            drawFennecFox(width / 2, height * 0.82 - fox.y);
+
+            // 6. DRAW PARTICLES
+            particles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = Math.max(0, p.alpha);
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1.0;
+        }
+
+        // --- DRAWING ENTITIES ---
+        function drawObstacle(obs, x, y, scale) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(scale, scale);
+
+            if (obs.type === 'rock') {
+                // Low jagged rock
+                ctx.fillStyle = '#4a3f6b';
+                ctx.strokeStyle = '#2b2245';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(-25, 0);
+                ctx.lineTo(-15, -30);
+                ctx.lineTo(5, -45);
+                ctx.lineTo(25, -10);
+                ctx.lineTo(30, 0);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // Highlight
+                ctx.fillStyle = '#6b5c94';
+                ctx.beginPath();
+                ctx.moveTo(-15, -30);
+                ctx.lineTo(5, -45);
+                ctx.lineTo(2, -15);
+                ctx.closePath();
+                ctx.fill();
+            } else if (obs.type === 'bones') {
+                // Spooky desert skull / bones pile
+                ctx.fillStyle = '#e0d8c3';
+                ctx.strokeStyle = '#a3987d';
+                ctx.lineWidth = 2;
+                // Skull
+                ctx.beginPath();
+                ctx.arc(0, -20, 14, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                // Eye sockets
+                ctx.fillStyle = '#1b1238';
+                ctx.beginPath();
+                ctx.arc(-5, -22, 3, 0, Math.PI * 2);
+                ctx.arc(5, -22, 3, 0, Math.PI * 2);
+                ctx.fill();
+                // Cross bones
+                ctx.strokeStyle = '#e0d8c3';
+                ctx.lineWidth = 6;
+                ctx.beginPath();
+                ctx.moveTo(-22, -5); ctx.lineTo(22, -15);
+                ctx.moveTo(-22, -15); ctx.lineTo(22, -5);
+                ctx.stroke();
+            } else if (obs.type === 'cactus') {
+                // Tall saguaro cactus
+                ctx.fillStyle = '#2e6b52';
+                ctx.strokeStyle = '#1a3d2e';
+                ctx.lineWidth = 3;
+                // Main trunk
+                ctx.beginPath();
+                ctx.roundRect(-12, -110, 24, 110, [12, 12, 0, 0]);
+                ctx.fill();
+                ctx.stroke();
+                // Left arm
+                ctx.beginPath();
+                ctx.roundRect(-32, -80, 22, 16, [10, 0, 0, 10]);
+                ctx.roundRect(-32, -105, 12, 40, [6, 6, 0, 0]);
+                ctx.fill();
+                ctx.stroke();
+                // Right arm
+                ctx.beginPath();
+                ctx.roundRect(10, -65, 22, 16, [0, 10, 10, 0]);
+                ctx.roundRect(20, -95, 12, 40, [6, 6, 0, 0]);
+                ctx.fill();
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function drawGem(x, y, scale) {
+            ctx.save();
+            ctx.translate(x, y);
+            const floatOffset = Math.sin(Date.now() * 0.008) * 8;
+            ctx.translate(0, floatOffset);
+            ctx.scale(scale, scale);
+
+            // Glowing aura
+            const aura = ctx.createRadialGradient(0, 0, 2, 0, 0, 25);
+            aura.addColorStop(0, 'rgba(0, 229, 255, 0.8)');
+            aura.addColorStop(1, 'rgba(0, 229, 255, 0)');
+            ctx.fillStyle = aura;
+            ctx.beginPath();
+            ctx.arc(0, 0, 25, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Diamond gem shape
+            ctx.fillStyle = '#00e5ff';
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, -22);
+            ctx.lineTo(15, -6);
+            ctx.lineTo(0, 20);
+            ctx.lineTo(-15, -6);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Facet shine
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.beginPath();
+            ctx.moveTo(0, -22);
+            ctx.lineTo(6, -6);
+            ctx.lineTo(0, 5);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawFennecFox(x, y) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            // Running bobbing animation
+            const bounce = gameState === 'PLAYING' ? Math.sin(Date.now() * 0.025 * gameSpeed) * 6 : 0;
+            ctx.translate(0, bounce);
+
+            // Shadow on ground if jumping
+            if (fox.y > 0) {
+                ctx.save();
+                ctx.translate(0, fox.y + bounce);
+                ctx.scale(1, 0.3);
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                ctx.beginPath();
+                ctx.arc(0, 20, 30 * (1 - fox.y / 150), 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // Fennec Fox Body (Cute rear view with huge ears)
+            // Huge distinctive ears
+            ctx.fillStyle = '#e89138'; // Warm sandy orange
+            ctx.strokeStyle = '#b85f14';
+            ctx.lineWidth = 3;
+
+            // Left Ear
+            ctx.beginPath();
+            ctx.moveTo(-15, -25);
+            ctx.lineTo(-42, -85);
+            ctx.lineTo(-5, -50);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Inner left ear (pinkish)
+            ctx.fillStyle = '#ffb3c6';
+            ctx.beginPath();
+            ctx.moveTo(-18, -32);
+            ctx.lineTo(-35, -73);
+            ctx.lineTo(-10, -48);
+            ctx.closePath();
+            ctx.fill();
+
+            // Right Ear
+            ctx.fillStyle = '#e89138';
+            ctx.beginPath();
+            ctx.moveTo(15, -25);
+            ctx.lineTo(42, -85);
+            ctx.lineTo(5, -50);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Inner right ear
+            ctx.fillStyle = '#ffb3c6';
+            ctx.beginPath();
+            ctx.moveTo(18, -32);
+            ctx.lineTo(35, -73);
+            ctx.lineTo(10, -48);
+            ctx.closePath();
+            ctx.fill();
+
+            // Fluffy Head
+            ctx.fillStyle = '#e89138';
+            ctx.beginPath();
+            ctx.arc(0, -25, 24, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Chubby Body
+            ctx.beginPath();
+            ctx.ellipse(0, 15, 22, 28, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // White chest fluff tuft visible from behind/side
+            ctx.fillStyle = '#fff4e6';
+            ctx.beginPath();
+            ctx.ellipse(0, 10, 14, 18, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Big fluffy tail with white tip trailing behind
+            const tailSway = Math.sin(Date.now() * 0.015) * 12;
+            ctx.fillStyle = '#e89138';
+            ctx.beginPath();
+            ctx.ellipse(tailSway, 32, 14, 22, Math.PI / 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // White tail tip
+            ctx.fillStyle = '#fff4e6';
+            ctx.beginPath();
+            ctx.ellipse(tailSway + 6, 45, 8, 10, Math.PI / 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        // --- MAIN LOOP ---
+        function loop(timestamp) {
+            const dt = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+
+            update(Math.min(dt, 0.1));
+            draw();
+
+            requestAnimationFrame(loop);
+        }
+
+        requestAnimationFrame(loop);
+    </script>
+</body>
+</html>
